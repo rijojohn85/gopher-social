@@ -38,8 +38,56 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	if err := writeJson(w, http.StatusCreated, post); err != nil {
 		app.internalServerError(w, r, err)
 	}
+
 }
 
+func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request) {
+	var payload CreatePostPayload
+	idParam := chi.URLParam(r, "postID")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		app.badRequestError(w, r, err)
+	}
+
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequestError(w, r, err)
+		return
+	}
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestError(w, r, err)
+	}
+	post := &store.Post{
+		Title:   payload.Title,
+		Content: payload.Content,
+		Tags:    payload.Tags,
+	}
+	ctx := r.Context()
+	if err := app.store.Posts.Update(ctx, post, int64(id)); err != nil {
+		app.internalServerError(w, r, err)
+	}
+	if err := writeJson(w, http.StatusOK, post); err != nil {
+		app.internalServerError(w, r, err)
+	}
+
+}
+
+func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "postID")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		app.badRequestError(w, r, err)
+	}
+	ctx := r.Context()
+	if err := app.store.Posts.Delete(ctx, int64(id)); err != nil {
+		if errors.Is(err, store.ErrorNotFound) {
+			app.notFoundError(w, r, err)
+		} else {
+			app.internalServerError(w, r, err)
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+
+}
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "postID")
 	id, err := strconv.Atoi(idParam)
@@ -54,7 +102,6 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, store.ErrorNotFound):
 			app.notFoundError(w, r, err)
-			return
 		default:
 			app.internalServerError(w, r, err)
 		}

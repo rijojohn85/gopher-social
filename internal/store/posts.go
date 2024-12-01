@@ -46,6 +46,46 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	return nil
 }
 
+func (s *PostStore) Update(ctx context.Context, post *Post, id int64) error {
+	query := `
+UPDATE posts
+SET content = $1, title = $2, updated_at = NOW(), tags = $3
+WHERE id = $4;
+`
+	result, err := s.db.ExecContext(ctx, query, post.Content, post.Title, pq.Array(post.Tags), id)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return errors.New("update: rows affected != 1")
+	}
+	return nil
+}
+func (s *PostStore) Delete(ctx context.Context, id int64) error {
+	query := `
+Delete FROM posts
+WHERE id = $1;
+`
+	result, err := s.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return ErrorNotFound
+	} else if count != 1 {
+		return errors.New("update: rows affected != 1")
+	}
+	return nil
+}
+
 func (s *PostStore) GetPostById(ctx context.Context, post *Post, id int64) error {
 	query := `
   SELECT id, user_id, title, content, created_at, updated_at, tags
