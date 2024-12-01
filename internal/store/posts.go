@@ -3,18 +3,20 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/lib/pq"
 )
 
 type Post struct {
-	Content   string   `json:"content"`
-	Title     string   `json:"title"`
-	CreateAt  string   `json:"created_at"`
-	UpdatedAt string   `json:"updated_at"`
-	Tags      []string `json:"tags"`
-	ID        int64    `json:"id"`
-	UserID    int64    `json:"user_id"`
+	Content   string    `json:"content"`
+	Title     string    `json:"title"`
+	CreateAt  string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+	Tags      []string  `json:"tags"`
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Commennts []Comment `json:"comments"`
 }
 
 type PostStore struct {
@@ -40,6 +42,32 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *PostStore) GetPostById(ctx context.Context, post *Post, id int64) error {
+	query := `
+  SELECT id, user_id, title, content, created_at, updated_at, tags
+  FROM posts
+  where id = $1
+  `
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&post.ID,
+		&post.UserID,
+		&post.Title,
+		&post.Content,
+		&post.CreateAt,
+		&post.UpdatedAt,
+		pq.Array(&post.Tags),
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrorNotFound
+		default:
+			return err
+		}
 	}
 	return nil
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/rijojohn85/social/internal/store"
 )
 
+const version = "0.0.1"
+
 type application struct {
 	store  store.Storage
 	config config
@@ -17,6 +19,7 @@ type application struct {
 
 type config struct {
 	addr string
+	env  string
 	db   dbConfig
 }
 type dbConfig struct {
@@ -41,6 +44,14 @@ func (app *application) mount() http.Handler {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
+
+		r.Route("/posts", func(r chi.Router) {
+			r.Post("/", app.createPostHandler)
+
+			r.Route("/{postID}", func(r chi.Router) {
+				r.Get("/", app.getPostHandler)
+			})
+		})
 	})
 
 	return r
