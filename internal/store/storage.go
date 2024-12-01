@@ -12,7 +12,7 @@ type Storage struct {
 	Posts interface {
 		Create(context.Context, *Post) error
 		GetPostById(context.Context, *Post, int64) error
-		Update(ctx context.Context, post *Post, id int64) error
+		Update(ctx context.Context, post *Post) error
 		Delete(ctx context.Context, id int64) error
 	}
 	Users interface {

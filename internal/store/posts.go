@@ -16,14 +16,17 @@ type Post struct {
 	Tags      []string  `json:"tags"`
 	ID        int64     `json:"id"`
 	UserID    int64     `json:"user_id"`
-	Commennts []Comment `json:"comments"`
+	Comments  []Comment `json:"comments"`
 }
 
 type PostStore struct {
 	db *sql.DB
 }
 
-func (s *PostStore) Create(ctx context.Context, post *Post) error {
+func (s *PostStore) Create(
+	ctx context.Context,
+	post *Post,
+) error {
 	query := `
   INSERT INTO posts(content, title, user_id, tags)
   VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at
@@ -46,13 +49,20 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	return nil
 }
 
-func (s *PostStore) Update(ctx context.Context, post *Post, id int64) error {
+func (s *PostStore) Update(ctx context.Context, post *Post) error {
 	query := `
 UPDATE posts
 SET content = $1, title = $2, updated_at = NOW(), tags = $3
 WHERE id = $4;
 `
-	result, err := s.db.ExecContext(ctx, query, post.Content, post.Title, pq.Array(post.Tags), id)
+	result, err := s.db.ExecContext(
+		ctx,
+		query,
+		post.Content,
+		post.Title,
+		pq.Array(post.Tags),
+		post.ID,
+	)
 	if err != nil {
 		return err
 	}
@@ -70,7 +80,11 @@ func (s *PostStore) Delete(ctx context.Context, id int64) error {
 Delete FROM posts
 WHERE id = $1;
 `
-	result, err := s.db.ExecContext(ctx, query, id)
+	result, err := s.db.ExecContext(
+		ctx,
+		query,
+		id,
+	)
 	if err != nil {
 		return err
 	}
@@ -92,7 +106,11 @@ func (s *PostStore) GetPostById(ctx context.Context, post *Post, id int64) error
   FROM posts
   where id = $1
   `
-	err := s.db.QueryRowContext(ctx, query, id).Scan(
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		id,
+	).Scan(
 		&post.ID,
 		&post.UserID,
 		&post.Title,
@@ -103,7 +121,10 @@ func (s *PostStore) GetPostById(ctx context.Context, post *Post, id int64) error
 	)
 	if err != nil {
 		switch {
-		case errors.Is(err, sql.ErrNoRows):
+		case errors.Is(
+			err,
+			sql.ErrNoRows,
+		):
 			return ErrorNotFound
 		default:
 			return err
