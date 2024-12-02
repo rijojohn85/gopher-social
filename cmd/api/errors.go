@@ -11,13 +11,7 @@ func (app *application) internalServerError(
 	r *http.Request,
 	err error,
 ) {
-	log.Printf(
-		"%v internal server error: %q path: %q error: %q",
-		time.Now(),
-		r.Method,
-		r.URL.Path,
-		err.Error(),
-	)
+	log.Printf("%v internal server error: %q path: %q error: %q", time.Now(), r.Method, r.URL.Path, err.Error())
 
 	writeJsonError(
 		w,
