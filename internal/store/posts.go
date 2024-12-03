@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/lib/pq"
 )
 
@@ -79,6 +80,7 @@ RETURNING version
 	}
 	return nil
 }
+
 func (s *PostStore) Delete(ctx context.Context, id int64) error {
 	query := `
 Delete FROM posts

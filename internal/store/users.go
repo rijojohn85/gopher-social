@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/lib/pq"
 )
 
@@ -47,8 +48,7 @@ func (s *UserStore) Create(ctx context.Context, user *User) error {
 }
 
 func (s *UserStore) GetUser(ctx context.Context, user *User, id int64) error {
-	query :=
-		`
+	query := `
 		SELECT id, username, email, created_at FROM users WHERE id = $1;
 		`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
@@ -83,8 +83,8 @@ INSERT INTO followers(user_id, follower_id) VALUES($1, $2)
 	}
 	return nil
 }
-func (s *UserStore) DeleteFollower(ctx context.Context, userID, followerID int64) error {
 
+func (s *UserStore) DeleteFollower(ctx context.Context, userID, followerID int64) error {
 	query := `
 DELETE FROM followers WHERE user_id = $1 AND follower_id = $2;
 `

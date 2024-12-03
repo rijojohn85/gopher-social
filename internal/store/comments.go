@@ -19,7 +19,6 @@ type CommentStore struct {
 }
 
 func (s *CommentStore) Create(ctx context.Context, comment *Comment) error {
-
 	query := `
   INSERT INTO comments(content, user_id, post_id)
   VALUES ($1, $2, $3) RETURNING id, created_at

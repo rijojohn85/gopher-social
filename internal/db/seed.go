@@ -2,10 +2,11 @@ package db
 
 import (
 	"context"
-	"github.com/rijojohn85/social/internal/store"
 	"log"
 	"math/rand"
 	"strconv"
+
+	"github.com/rijojohn85/social/internal/store"
 )
 
 func Seed(store store.Storage) {
@@ -46,6 +47,7 @@ func generateUsers(count int) []*store.User {
 	}
 	return users
 }
+
 func generatePosts(count int, users []*store.User) []*store.Post {
 	posts := make([]*store.Post, count)
 	for i := 0; i < count; i++ {

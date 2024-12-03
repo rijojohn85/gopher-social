@@ -40,6 +40,7 @@ func (app *application) badRequestError(
 		err.Error(),
 	)
 }
+
 func (app *application) conflictRequestError(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -55,9 +56,7 @@ func (app *application) conflictRequestError(
 	)
 
 	writeJsonError(
-		w,
-		http.StatusConflict,
-		err.Error(),
+		w, http.StatusConflict, err.Error(),
 	)
 }
 
