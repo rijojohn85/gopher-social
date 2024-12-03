@@ -40,6 +40,26 @@ func (app *application) badRequestError(
 		err.Error(),
 	)
 }
+func (app *application) conflictRequestError(
+	w http.ResponseWriter,
+	r *http.Request,
+	err error,
+) {
+	log.Printf(
+		"%v Conflict sent error: %q path: %q, body: %s error: %q",
+		time.Now(),
+		r.Method,
+		r.URL.Path,
+		r.Body,
+		err.Error(),
+	)
+
+	writeJsonError(
+		w,
+		http.StatusConflict,
+		err.Error(),
+	)
+}
 
 func (app *application) notFoundError(
 	w http.ResponseWriter,

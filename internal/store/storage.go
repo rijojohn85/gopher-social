@@ -9,6 +9,7 @@ import (
 
 var ErrorNotFound = errors.New("record not found")
 var QueryTimeOut = time.Second * 5
+var ErrUserAlreadyFollows = errors.New("user already follows")
 
 type Storage struct {
 	Posts interface {
@@ -20,6 +21,8 @@ type Storage struct {
 	Users interface {
 		Create(context.Context, *User) error
 		GetUser(context.Context, *User, int64) error
+		AddFollower(ctx context.Context, userID, followerID int64) error
+		DeleteFollower(ctx context.Context, userID, followerID int64) error
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error

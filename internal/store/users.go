@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/lib/pq"
 )
 
 type User struct {
@@ -12,6 +13,12 @@ type User struct {
 	Password  string `json:"-"`
 	CreatedAt string `json:"created_at"`
 	ID        int64  `json:"id"`
+}
+
+type Follower struct {
+	UserID     int64  `json:"user_id"`
+	FollowerID int64  `json:"follower_id"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type UserStore struct {
@@ -58,4 +65,31 @@ func (s *UserStore) GetUser(ctx context.Context, user *User, id int64) error {
 		}
 	}
 	return nil
+}
+
+func (s *UserStore) AddFollower(ctx context.Context, userID, followerID int64) error {
+	query := `
+INSERT INTO followers(user_id, follower_id) VALUES($1, $2)
+`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
+	defer cancel()
+	_, err := s.db.ExecContext(ctx, query, userID, followerID)
+	if err != nil {
+		if prErr, ok := err.(*pq.Error); ok && prErr.Code == "23505" {
+			return ErrUserAlreadyFollows
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+func (s *UserStore) DeleteFollower(ctx context.Context, userID, followerID int64) error {
+
+	query := `
+DELETE FROM followers WHERE user_id = $1 AND follower_id = $2;
+`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
+	defer cancel()
+	_, err := s.db.ExecContext(ctx, query, userID, followerID)
+	return err
 }

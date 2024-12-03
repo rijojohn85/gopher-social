@@ -10,6 +10,10 @@ import (
 	"github.com/rijojohn85/social/internal/store"
 )
 
+type postKey string
+
+const postCtx postKey = "post"
+
 type CreatePostPayload struct {
 	Title   string   `json:"title" validate:"required,max=100"`
 	Content string   `json:"content" validate:"required,max=1000"`
@@ -156,13 +160,13 @@ func (app *application) postContextMiddleware(next http.Handler) http.Handler {
 					return
 				}
 			}
-			ctx = context.WithValue(r.Context(), "post", post)
+			ctx = context.WithValue(r.Context(), postCtx, post)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		},
 	)
 }
 
 func getPostFromContext(r *http.Request) *store.Post {
-	post, _ := r.Context().Value("post").(*store.Post)
+	post, _ := r.Context().Value(postCtx).(*store.Post)
 	return post
 }
