@@ -42,20 +42,27 @@ func (app *application) mount() http.Handler {
 	* */
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.healthCheckHandler)
+	r.Route(
+		"/v1", func(r chi.Router) {
+			r.Get("/health", app.healthCheckHandler)
 
-		r.Route("/posts", func(r chi.Router) {
-			r.Post("/", app.createPostHandler)
+			r.Route(
+				"/posts", func(r chi.Router) {
+					r.Post("/", app.createPostHandler)
 
-			r.Route("/{postID}", func(r chi.Router) {
-				r.Use(app.postContextMiddleware)
-				r.Get("/", app.getPostHandler)
-				r.Patch("/", app.patchPostHandler)
-				r.Delete("/", app.deletePostHandler)
-			})
-		})
-	})
+					r.Route(
+						"/{postID}", func(r chi.Router) {
+							r.Use(app.postContextMiddleware)
+							r.Get("/", app.getPostHandler)
+							r.Post("/comments", app.createCommentHandler)
+							r.Patch("/", app.patchPostHandler)
+							r.Delete("/", app.deletePostHandler)
+						},
+					)
+				},
+			)
+		},
+	)
 
 	return r
 }
