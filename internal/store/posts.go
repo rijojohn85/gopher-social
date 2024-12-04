@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/lib/pq"
 )
@@ -30,20 +31,23 @@ type PostStore struct {
 	db *sql.DB
 }
 
-func (s *PostStore) GetUserFeed(ctx context.Context, id int64) ([]UserFeed, error) {
+func (s *PostStore) GetUserFeed(ctx context.Context, id int64, fq PaginatedFeedQuery) ([]UserFeed, error) {
 	query := `
 select p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username, COUNT(c.id)as comments_count
 from posts as p 
 left join comments c on p.id = c.post_id
 left join users u on u.id = p.user_id
 join public.followers f on p.user_id = f.follower_id or p.user_id = $1
-where f.user_id = $1 or p.user_id =$1
+where (f.user_id = $1) and 
+			(p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%') AND
+(p.tags @> $5 or $5 = '{}')
 group by p.id, u.username
-order by p.created_at DESC;
+order by p.created_at ` + fq.Sort + `
+LIMIT $2 OFFSET $3;
 `
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
 	defer cancel()
-	rows, err := s.db.QueryContext(ctx, query, id)
+	rows, err := s.db.QueryContext(ctx, query, id, fq.Limit, fq.Offset, fq.Search, pq.Array(fq.Tags))
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +70,7 @@ order by p.created_at DESC;
 		}
 		feed = append(feed, post)
 	}
+	log.Println(len(feed))
 	return feed, nil
 }
 
