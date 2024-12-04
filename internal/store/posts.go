@@ -18,10 +18,55 @@ type Post struct {
 	UserID    int64     `json:"user_id"`
 	Version   int       `json:"version"`
 	Comments  []Comment `json:"comments"`
+	User      User      `json:"user"`
+}
+
+type UserFeed struct {
+	Post
+	CommentCount int `json:"comments_count"`
 }
 
 type PostStore struct {
 	db *sql.DB
+}
+
+func (s *PostStore) GetUserFeed(ctx context.Context, id int64) ([]UserFeed, error) {
+	query := `
+select p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username, COUNT(c.id)as comments_count
+from posts as p 
+left join comments c on p.id = c.post_id
+left join users u on u.id = p.user_id
+join public.followers f on p.user_id = f.follower_id or p.user_id = $1
+where f.user_id = $1 or p.user_id =$1
+group by p.id, u.username
+order by p.created_at DESC;
+`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
+	defer cancel()
+	rows, err := s.db.QueryContext(ctx, query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var feed []UserFeed
+	for rows.Next() {
+		var post UserFeed
+		if err := rows.Scan(
+			&post.ID,
+			&post.UserID,
+			&post.Title,
+			&post.Content,
+			&post.CreateAt,
+			&post.Version,
+			pq.Array(&post.Tags),
+			&post.User.Username,
+			&post.CommentCount,
+		); err != nil {
+			return nil, err
+		}
+		feed = append(feed, post)
+	}
+	return feed, nil
 }
 
 func (s *PostStore) Create(
