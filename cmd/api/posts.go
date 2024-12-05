@@ -26,6 +26,20 @@ type UpdatePostPayload struct {
 	Tags    []string `json:"tags"`
 }
 
+// CreatePost godoc
+//
+//	@Summary		Creates post
+//	@Description	Creates a post with payload
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		CreatePostPayload	true	"Post payload"
+//	@Success		201		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts [post]
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreatePostPayload
 	if err := readJson(
@@ -56,9 +70,23 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	if err := app.jsonResponse(w, http.StatusCreated, post); err != nil {
 		app.internalServerError(w, r, err)
 	}
-
 }
 
+// UpdatePost godoc
+//
+//	@Summary		Updates post
+//	@Description	Updates a post with payload
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int					true	"postID"
+//	@Param			payload	body		UpdatePostPayload	true	"Post payload"
+//	@Success		201		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postID} [patch]
 func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload UpdatePostPayload
 	post := getPostFromContext(r)
@@ -88,9 +116,22 @@ func (app *application) patchPostHandler(w http.ResponseWriter, r *http.Request)
 		app.internalServerError(w, r, err)
 		return
 	}
-
 }
 
+// DeletePost godoc
+//
+//	@Summary		Deletes post
+//	@Description	Deletes a post with id
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int		true	"postID"
+//	@Success		200		{string}	string	"post deleted"
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postID} [DELETE]
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(
 		r,
@@ -117,8 +158,22 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 	w.WriteHeader(http.StatusOK)
-
 }
+
+// GetPost godoc
+//
+//	@Summary		Gets post
+//	@Description	Gets a post with id
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int			true	"postID"
+//	@Success		200		{object}	store.Post	"post deleted"
+//	@Failure		400		{object}	error
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postID} [GET]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	post := getPostFromContext(r)

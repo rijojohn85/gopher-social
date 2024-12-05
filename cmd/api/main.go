@@ -8,6 +8,21 @@ import (
 	"github.com/rijojohn85/social/internal/store"
 )
 
+const version = "0.0.1"
+
+//	@title			GopherSocial API
+//	@description	API for GopherSocial, a social network for gopher
+
+//	@contact.name	Rijo John
+//	@contact.url	http://github.com/rijojohn85
+//	@contact.email	rijojohn85@gmail.com
+
+// @BasePath					/v1
+//
+// @securityDefinitions.apikey	ApiKeyAuth
+// @in							header
+// @name						Authorization
+// @description
 func main() {
 	cfg := config{
 		addr: env.GetString("ADDR", ":8080"),
@@ -20,7 +35,8 @@ func main() {
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME ", "15m"),
 		},
-		env: env.GetString("ENV", "development"),
+		env:    env.GetString("ENV", "development"),
+		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
 	}
 	db, err := db.New(
 		cfg.db.addr,
