@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 )
@@ -11,13 +10,27 @@ func (app *application) internalServerError(
 	r *http.Request,
 	err error,
 ) {
-	log.Printf("%v internal server error: %q path: %q error: %q", time.Now(), r.Method, r.URL.Path, err.Error())
+	app.logger.Errorw(
+		"Internal Server Error",
+		"path",
+		r.URL.Path,
+		"error",
+		err.Error(),
+		"method",
+		r.Method,
+		"time",
+		time.Now(),
+	)
 
-	writeJsonError(
+	errJson := writeJsonError(
 		w,
 		http.StatusInternalServerError,
-		"The server encountered an error",
+		err.Error(),
 	)
+	if errJson != nil {
+		app.internalServerError(w, r, errJson)
+		return
+	}
 }
 
 func (app *application) badRequestError(
@@ -25,20 +38,27 @@ func (app *application) badRequestError(
 	r *http.Request,
 	err error,
 ) {
-	log.Printf(
-		"%v Bad Request sent error: %q path: %q, body: %s error: %q",
-		time.Now(),
-		r.Method,
+	app.logger.Warnw(
+		"Bad Request error",
+		"path",
 		r.URL.Path,
-		r.Body,
+		"error",
 		err.Error(),
+		"method",
+		r.Method,
+		"time",
+		time.Now(),
 	)
 
-	writeJsonError(
+	errJson := writeJsonError(
 		w,
 		http.StatusBadRequest,
 		err.Error(),
 	)
+	if errJson != nil {
+		app.internalServerError(w, r, errJson)
+		return
+	}
 }
 
 func (app *application) conflictRequestError(
@@ -46,18 +66,27 @@ func (app *application) conflictRequestError(
 	r *http.Request,
 	err error,
 ) {
-	log.Printf(
-		"%v Conflict sent error: %q path: %q, body: %s error: %q",
-		time.Now(),
-		r.Method,
+	app.logger.Errorw(
+		"Conflict Request error",
+		"path",
 		r.URL.Path,
-		r.Body,
+		"error",
 		err.Error(),
+		"method",
+		r.Method,
+		"time",
+		time.Now(),
 	)
 
-	writeJsonError(
-		w, http.StatusConflict, err.Error(),
+	errJson := writeJsonError(
+		w,
+		http.StatusConflict,
+		err.Error(),
 	)
+	if errJson != nil {
+		app.internalServerError(w, r, errJson)
+		return
+	}
 }
 
 func (app *application) notFoundError(
@@ -65,17 +94,24 @@ func (app *application) notFoundError(
 	r *http.Request,
 	err error,
 ) {
-	log.Printf(
-		"%v Not Found error: %q path: %q, error: %q",
-		time.Now(),
-		r.Method,
+	app.logger.Warnw(
+		"NotFound Request error",
+		"path",
 		r.URL.Path,
+		"error",
 		err.Error(),
+		"method",
+		r.Method,
+		"time",
+		time.Now(),
 	)
-
-	writeJsonError(
+	errJson := writeJsonError(
 		w,
 		http.StatusNotFound,
 		err.Error(),
 	)
+	if errJson != nil {
+		app.internalServerError(w, r, errJson)
+		return
+	}
 }

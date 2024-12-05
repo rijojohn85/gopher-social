@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
-
 	"github.com/lib/pq"
 )
 
@@ -41,7 +39,7 @@ join public.followers f on p.user_id = f.follower_id or p.user_id = $1
 where (f.user_id = $1) and 
 			(p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%') AND
 (p.tags @> $5 or $5 = '{}')
-group by p.id, u.username
+group by p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username
 order by p.created_at ` + fq.Sort + `
 LIMIT $2 OFFSET $3;
 `
@@ -70,7 +68,6 @@ LIMIT $2 OFFSET $3;
 		}
 		feed = append(feed, post)
 	}
-	log.Println(len(feed))
 	return feed, nil
 }
 
