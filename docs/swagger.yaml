@@ -1,5 +1,14 @@
 basePath: /v1
 definitions:
+  main.AuthPayload:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   main.CreateCommentPayload:
     properties:
       content:
@@ -127,6 +136,39 @@ info:
   description: API for GopherSocial, a social network for gopher
   title: GopherSocial API
 paths:
+  /authentication/users:
+    post:
+      consumes:
+      - application/json
+      description: Register a user and send email invite
+      parameters:
+      - description: Auth payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.AuthPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/store.User'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Register a user
+      tags:
+      - auth
   /posts:
     post:
       consumes:
@@ -386,6 +428,36 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Unfollows a user
+      tags:
+      - users
+  /users/activate/{token}:
+    put:
+      description: Activates/Registers a user by invitation token
+      parameters:
+      - description: Invitation Token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User Activated
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Activates/Registers a user
       tags:
       - users
   /users/feed:

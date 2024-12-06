@@ -16,6 +16,47 @@ const userCtxKey userKey = "user"
 
 // GetUser godoc
 //
+//	@Summary		Activates/Registers a user
+//	@Description	Activates/Registers a user by invitation token
+//	@Tags			users
+//	@Produce		json
+//	@Param			token path		string true	"Invitation Token"
+//	@Success		204		{string}	string "User Activated"
+//	@Failure		404		{object}	error
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/activate/{token} [PUT]
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		app.badRequestError(w, r, errors.New("token required"))
+		return
+	}
+	err := app.store.Users.Activate(r.Context(), token)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrInvalidToken):
+			app.badRequestError(w, r, err)
+		case errors.Is(err, store.ErrInvitationExpired):
+			app.badRequestError(w, r, err)
+		case errors.Is(err, store.ErrorNotFound):
+			app.internalServerError(w, r, errors.New(
+				"user not found. Contact developer"),
+			)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	if err := app.jsonResponse(w, http.StatusOK, "user activated"); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+}
+
+// GetUser godoc
+//
 //	@Summary		Fetches a user profile
 //	@Description	Fecthes a user profile by ID
 //	@Tags			users

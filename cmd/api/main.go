@@ -5,6 +5,7 @@ import (
 	"github.com/rijojohn85/social/internal/env"
 	"github.com/rijojohn85/social/internal/store"
 	"go.uber.org/zap"
+	"time"
 )
 
 const version = "0.0.1"
@@ -49,6 +50,10 @@ func main() {
 	if err != nil {
 		logger.Panic(err.Error())
 	}
+	mail := mailConfig{
+		exp: time.Hour * 24,
+	}
+	cfg.mail = mail
 	logger.Info("Connected to Database pool")
 	defer database.Close()
 	storage := store.NewStorage(database)
