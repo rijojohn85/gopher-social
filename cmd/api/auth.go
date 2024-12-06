@@ -4,7 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/rijojohn85/social/internal/env"
+	"github.com/rijojohn85/social/internal/mailer"
 	"github.com/rijojohn85/social/internal/store"
 	"net/http"
 )
@@ -73,7 +76,40 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	//TODO: send email
+	domain := env.GetString("DOMAIN", "http://localhost:8080")
+	activationURL := fmt.Sprintf("%s/activate/%s", domain, plainToken)
+	isProdEnv := app.config.env == "production"
+	vars := struct {
+		Username      string
+		ActivationURL string
+	}{
+		Username:      user.Username,
+		ActivationURL: activationURL,
+	}
+	err = app.mailer.Send(
+		mailer.UserWelcomeTemplate,
+		user.Username,
+		user.Email,
+		vars,
+		!isProdEnv,
+	)
+	if err != nil {
+		app.logger.Errorw("Error sending mail", "error", err)
+		//rollback user creation if email fails (SAGA Pattern)
+		if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
+			app.logger.Errorw("Deleting email failed", "error", err)
+			switch {
+			case errors.Is(err, store.ErrorNotFound):
+				app.logger.Errorw("Deleting email failed", "error", err)
+				app.internalServerError(w, r, errors.New("user not found, contact developer"))
+			default:
+				app.internalServerError(w, r, err)
+			}
+		} else {
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
 	if err := app.jsonResponse(w, http.StatusCreated, plainToken); err != nil {
 		app.internalServerError(w, r, err)
 		return

@@ -35,6 +35,7 @@ type Storage struct {
 			exp time.Duration,
 		) error
 		Activate(ctx context.Context, token string) error
+		Delete(ctx context.Context, userID int64) error
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error

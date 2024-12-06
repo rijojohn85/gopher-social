@@ -207,3 +207,23 @@ delete from user_invitations where token = $1;
 	s.db.ExecContext(ctx, query, hashToken)
 	return nil
 }
+
+func (s *UserStore) Delete(ctx context.Context, userID int64) error {
+	query := `
+delete from users where id = $1;
+`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
+	defer cancel()
+	result, err := s.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return ErrorNotFound
+	}
+	return nil
+}

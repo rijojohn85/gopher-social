@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/rijojohn85/social/internal/db"
 	"github.com/rijojohn85/social/internal/env"
+	"github.com/rijojohn85/social/internal/mailer"
 	"github.com/rijojohn85/social/internal/store"
 	"go.uber.org/zap"
 	"time"
@@ -37,6 +38,15 @@ func main() {
 		},
 		env:    env.GetString("ENV", "development"),
 		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
+		mail: mailConfig{
+			exp: time.Hour * 24,
+			mailer: mailTripConfig{
+				url:      env.GetString("MAILER_URL", "live.smtp.mailtrap.io"),
+				port:     env.GetInt("MAILER_PORT", 587),
+				username: env.GetString("MAILER_USERNAME", ""),
+				password: env.GetString("MAILER_PASSWORD", ""),
+			},
+		},
 	}
 	//logger
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -50,10 +60,13 @@ func main() {
 	if err != nil {
 		logger.Panic(err.Error())
 	}
-	mail := mailConfig{
-		exp: time.Hour * 24,
-	}
-	cfg.mail = mail
+	mailTripDialer := mailer.NewMailTripDialer(
+		cfg.mail.mailer.url,
+		cfg.mail.mailer.username,
+		cfg.mail.mailer.password,
+		env.GetString("MAILER_FROM_EMAIL", "rijojohn85@gmail.com"),
+		cfg.mail.mailer.port,
+	)
 	logger.Info("Connected to Database pool")
 	defer database.Close()
 	storage := store.NewStorage(database)
@@ -61,6 +74,7 @@ func main() {
 		config: cfg,
 		store:  storage,
 		logger: logger,
+		mailer: mailTripDialer,
 	}
 	mux := app.mount()
 	logger.Fatal(app.run(mux))

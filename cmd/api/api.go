@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/rijojohn85/social/internal/mailer"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -17,6 +18,7 @@ type application struct {
 	store  store.Storage
 	config config
 	logger *zap.SugaredLogger
+	mailer mailer.Client
 }
 
 type config struct {
@@ -27,7 +29,14 @@ type config struct {
 	mail   mailConfig
 }
 type mailConfig struct {
-	exp time.Duration
+	exp    time.Duration
+	mailer mailTripConfig
+}
+type mailTripConfig struct {
+	url      string
+	port     int
+	username string
+	password string
 }
 type dbConfig struct {
 	addr         string
