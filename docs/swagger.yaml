@@ -33,6 +33,13 @@ definitions:
     - content
     - title
     type: object
+  main.CreateTokenUserPayload:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
   main.UpdatePostPayload:
     properties:
       content:
@@ -136,6 +143,39 @@ info:
   description: API for GopherSocial, a social network for gopher
   title: GopherSocial API
 paths:
+  /authentication/token:
+    post:
+      consumes:
+      - application/json
+      description: Create token
+      parameters:
+      - description: CreateUserToken payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.CreateTokenUserPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: CreateToken
+      tags:
+      - auth
   /authentication/users:
     post:
       consumes:
@@ -169,6 +209,41 @@ paths:
       summary: Register a user
       tags:
       - auth
+  /health:
+    get:
+      description: check healtth of api
+      parameters:
+      - description: Auth payload
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Check health of api
+      tags:
+      - health
   /posts:
     post:
       consumes:

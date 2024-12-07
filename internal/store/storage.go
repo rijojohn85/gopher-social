@@ -14,6 +14,7 @@ var ErrDuplicateEmail = errors.New("duplicate email")
 var ErrDuplicateUsername = errors.New("duplicate username")
 var ErrInvitationExpired = errors.New("invitation expired")
 var ErrInvalidToken = errors.New("invalid token")
+var ErrEmailNotConfirmed = errors.New("email not confirmed")
 
 type Storage struct {
 	Posts interface {
@@ -35,6 +36,7 @@ type Storage struct {
 			exp time.Duration,
 		) error
 		Activate(ctx context.Context, token string) error
+		GetUserByEmail(ctx context.Context, email string) (*User, error)
 		Delete(ctx context.Context, userID int64) error
 	}
 	Comments interface {

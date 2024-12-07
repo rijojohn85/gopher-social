@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/rijojohn85/social/internal/db/auth"
 	"github.com/rijojohn85/social/internal/mailer"
 	"go.uber.org/zap"
 	"net/http"
@@ -15,10 +16,11 @@ import (
 )
 
 type application struct {
-	store  store.Storage
-	config config
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	store         store.Storage
+	config        config
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -27,6 +29,20 @@ type config struct {
 	apiURL string
 	db     dbConfig
 	mail   mailConfig
+	auth   authConfig
+}
+type authConfig struct {
+	basic basicAuthConfig
+	token tokenConfig
+}
+type tokenConfig struct {
+	secret string
+	aud    string
+	exp    time.Duration
+}
+type basicAuthConfig struct {
+	user string
+	pass string
 }
 type mailConfig struct {
 	exp    time.Duration
@@ -60,7 +76,7 @@ func (app *application) mount() http.Handler {
 
 	r.Route(
 		"/v1", func(r chi.Router) {
-			r.Get("/health", app.healthCheckHandler)
+			r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 			docsUrl := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 			r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsUrl)))
 
@@ -97,6 +113,7 @@ func (app *application) mount() http.Handler {
 			)
 			r.Route("/authentication", func(r chi.Router) {
 				r.Post("/users", app.registerUser)
+				r.Post("/token", app.createTokenHandler)
 			})
 		},
 	)

@@ -115,3 +115,27 @@ func (app *application) notFoundError(
 		return
 	}
 }
+
+func (app *application) unauthorizedError(w http.ResponseWriter, r *http.Request, err error) {
+
+	app.logger.Warnw(
+		"Unauthorized error",
+		"path",
+		r.URL.Path,
+		"error",
+		err.Error(),
+		"method",
+		r.Method,
+		"time",
+		time.Now(),
+	)
+	errJson := writeJsonError(
+		w,
+		http.StatusUnauthorized,
+		err.Error(),
+	)
+	if errJson != nil {
+		app.internalServerError(w, r, errJson)
+		return
+	}
+}

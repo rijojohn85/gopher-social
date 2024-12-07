@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/rijojohn85/social/internal/db"
+	"github.com/rijojohn85/social/internal/db/auth"
 	"github.com/rijojohn85/social/internal/env"
 	"github.com/rijojohn85/social/internal/mailer"
 	"github.com/rijojohn85/social/internal/store"
@@ -47,6 +48,17 @@ func main() {
 				password: env.GetString("MAILER_PASSWORD", ""),
 			},
 		},
+		auth: authConfig{
+			basic: basicAuthConfig{
+				user: "rijo",
+				pass: "password",
+			},
+			token: tokenConfig{
+				secret: env.GetString("TOKEN_SECRET", "hello_world"),
+				aud:    env.GetString("TOKEN_AUD", "gophersocial"),
+				exp:    time.Hour * 24 * 7,
+			},
+		},
 	}
 	//logger
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -70,11 +82,13 @@ func main() {
 	logger.Info("Connected to Database pool")
 	defer database.Close()
 	storage := store.NewStorage(database)
+	authetincator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.aud, cfg.auth.token.aud)
 	app := &application{
-		config: cfg,
-		store:  storage,
-		logger: logger,
-		mailer: mailTripDialer,
+		config:        cfg,
+		store:         storage,
+		logger:        logger,
+		mailer:        mailTripDialer,
+		authenticator: authetincator,
 	}
 	mux := app.mount()
 	logger.Fatal(app.run(mux))

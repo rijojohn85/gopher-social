@@ -22,7 +22,7 @@ type User struct {
 
 type password struct {
 	text *string
-	hash []byte
+	Hash []byte
 }
 
 func (p *password) Set(input string) error {
@@ -30,7 +30,7 @@ func (p *password) Set(input string) error {
 	if err != nil {
 		return err
 	}
-	p.hash = hash
+	p.Hash = hash
 	p.text = &input
 	return nil
 }
@@ -54,7 +54,7 @@ func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	err := tx.QueryRowContext(
 		ctx, query,
 		user.Username,
-		user.Password.hash,
+		user.Password.Hash,
 		user.Email,
 	).Scan(
 		&user.ID,
@@ -240,4 +240,24 @@ delete from user_invitations where user_id = $1;
 		return ErrorNotFound
 	}
 	return nil
+}
+
+func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	query := `
+SELECT id, username, email, password,is_active from users where email = $1;
+`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
+	defer cancel()
+	user := &User{}
+	var confirm bool
+	err := s.db.QueryRowContext(ctx, query, email).Scan(
+		&user.ID, &user.Username, &user.Email, &user.Password.Hash, &confirm,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if confirm != true {
+		return nil, ErrEmailNotConfirmed
+	}
+	return user, nil
 }
