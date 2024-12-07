@@ -50,12 +50,6 @@ func (m *MailTripMailer) Send(
 
 	// Set email body
 	message.SetBody("text/html", body.String())
-	if err := m.dialer.DialAndSend(message); err != nil {
-		fmt.Println("Error:", err)
-		panic(err)
-	} else {
-		fmt.Println("Email sent successfully!")
-	}
 
 	for i := 0; i < maxRetries; i++ {
 		err := m.dialer.DialAndSend(message)

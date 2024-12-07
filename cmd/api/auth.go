@@ -97,17 +97,10 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 		app.logger.Errorw("Error sending mail", "error", err)
 		//rollback user creation if email fails (SAGA Pattern)
 		if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
-			app.logger.Errorw("Deleting email failed", "error", err)
-			switch {
-			case errors.Is(err, store.ErrorNotFound):
-				app.logger.Errorw("Deleting email failed", "error", err)
-				app.internalServerError(w, r, errors.New("user not found, contact developer"))
-			default:
-				app.internalServerError(w, r, err)
-			}
-		} else {
-			app.internalServerError(w, r, err)
+			app.logger.Errorw("Deleting user failed", "error", err)
 		}
+
+		app.internalServerError(w, r, err)
 		return
 	}
 	if err := app.jsonResponse(w, http.StatusCreated, plainToken); err != nil {

@@ -225,5 +225,19 @@ delete from users where id = $1;
 	if rows != 1 {
 		return ErrorNotFound
 	}
+	query = `
+delete from user_invitations where user_id = $1;
+`
+	result, err = s.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	rows, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return ErrorNotFound
+	}
 	return nil
 }

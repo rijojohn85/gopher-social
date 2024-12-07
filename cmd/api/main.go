@@ -41,7 +41,7 @@ func main() {
 		mail: mailConfig{
 			exp: time.Hour * 24,
 			mailer: mailTripConfig{
-				url:      env.GetString("MAILER_URL", "live.smtp.mailtrap.io"),
+				url:      env.GetString("MAILER_URL", "sandbox.smtp.mailtrap.io"),
 				port:     env.GetInt("MAILER_PORT", 587),
 				username: env.GetString("MAILER_USERNAME", ""),
 				password: env.GetString("MAILER_PASSWORD", ""),
