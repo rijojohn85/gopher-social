@@ -31,7 +31,10 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 	fq.Offset = 0
 	fq.Sort = "desc"
 	fq, err := fq.Parse(r)
-	posts, err := app.store.Posts.GetUserFeed(ctx, int64(5), fq)
+	user := r.Context().Value("user").(*store.User)
+
+	app.logger.Warnw("user deets", "fq", fq)
+	posts, err := app.store.Posts.GetUserFeed(ctx, user.ID, fq)
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}

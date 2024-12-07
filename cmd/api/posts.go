@@ -53,12 +53,12 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	if err := Validate.Struct(payload); err != nil {
 		app.badRequestError(w, r, err)
 	}
+	user := r.Context().Value("user").(store.User)
 	post := &store.Post{
 		Title:   payload.Title,
 		Content: payload.Content,
-		// TODO: change after auth
-		UserID: 1,
-		Tags:   payload.Tags,
+		UserID:  user.ID,
+		Tags:    payload.Tags,
 	}
 	ctx := r.Context()
 	if err := app.store.Posts.Create(

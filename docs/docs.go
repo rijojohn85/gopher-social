@@ -559,7 +559,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Fecthes a user profile by ID",
+                "description": "Fetches a user profile by ID",
                 "consumes": [
                     "application/json"
                 ],

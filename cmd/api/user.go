@@ -12,6 +12,8 @@ import (
 
 type userKey string
 
+const flrCtxKey userKey = "follower"
+
 const userCtxKey userKey = "user"
 
 // GetUser godoc
@@ -58,7 +60,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 // GetUser godoc
 //
 //	@Summary		Fetches a user profile
-//	@Description	Fecthes a user profile by ID
+//	@Description	Fetches a user profile by ID
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
@@ -102,14 +104,14 @@ func (app *application) userContextMiddleware(next http.Handler) http.Handler {
 					return
 				}
 			}
-			ctx = context.WithValue(ctx, userCtxKey, user)
+			ctx = context.WithValue(ctx, flrCtxKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		},
 	)
 }
 
 func userFromContext(ctx context.Context) *store.User {
-	user := ctx.Value(userCtxKey).(*store.User)
+	user := ctx.Value(flrCtxKey).(*store.User)
 	return user
 }
 
@@ -127,10 +129,10 @@ func userFromContext(ctx context.Context) *store.User {
 //	@Security		ApiKeyAuth
 //	@Router			/users/{userID}/follow [PUT]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(userCtxKey).(*store.User)
 	followerUser := userFromContext(r.Context())
-	// TODO: update after auth
-	userID := 1
-	err := app.store.Users.AddFollower(r.Context(), int64(userID), followerUser.ID)
+	userID := user.ID
+	err := app.store.Users.AddFollower(r.Context(), userID, followerUser.ID)
 	if err != nil {
 		if errors.Is(err, store.ErrUserAlreadyFollows) {
 			app.conflictRequestError(w, r, err)
@@ -160,9 +162,9 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 //	@Router			/users/{userID}/unfollow [PUT]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 	followerUser := userFromContext(r.Context())
-	// TODO: update after auth
-	userID := 1
-	err := app.store.Users.DeleteFollower(r.Context(), int64(userID), followerUser.ID)
+	user := r.Context().Value(userCtxKey).(*store.User)
+	userID := user.ID
+	err := app.store.Users.DeleteFollower(r.Context(), userID, followerUser.ID)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return

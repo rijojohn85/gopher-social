@@ -31,21 +31,31 @@ type PostStore struct {
 
 func (s *PostStore) GetUserFeed(ctx context.Context, id int64, fq PaginatedFeedQuery) ([]UserFeed, error) {
 	query := `
-select p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username, COUNT(c.id)as comments_count
-from posts as p 
-left join comments c on p.id = c.post_id
-left join users u on u.id = p.user_id
-join public.followers f on p.user_id = f.follower_id or p.user_id = $1
-where (f.user_id = $1) and 
-			(p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%') AND
-(p.tags @> $5 or $5 = '{}')
-group by p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username
-order by p.created_at ` + fq.Sort + `
-LIMIT $2 OFFSET $3;
-`
+		SELECT 
+			p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags,
+			u.username,
+			COUNT(c.id) AS comments_count
+		FROM posts p
+		LEFT JOIN comments c ON c.post_id = p.id
+		LEFT JOIN users u ON p.user_id = u.id
+		JOIN followers f ON f.follower_id = p.user_id OR p.user_id = $1
+		WHERE 
+			f.user_id = $1
+		GROUP BY p.id, u.username
+		ORDER BY p.created_at ` + fq.Sort + `
+		LIMIT $2 OFFSET $3
+	`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
 	defer cancel()
-	rows, err := s.db.QueryContext(ctx, query, id, fq.Limit, fq.Offset, fq.Search, pq.Array(fq.Tags))
+	rows, err := s.db.QueryContext(
+		ctx,
+		query,
+		id,
+		fq.Limit,
+		fq.Offset,
+		//fq.Search,
+		//pq.Array(fq.Tags),
+	)
 	if err != nil {
 		return nil, err
 	}
