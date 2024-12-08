@@ -5,20 +5,22 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/rijojohn85/social/internal/env"
 	"github.com/rijojohn85/social/internal/mailer"
 	"github.com/rijojohn85/social/internal/store"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"time"
 )
 
 type AuthPayload struct {
 	Username string `json:"username" valid:"required,max=20"`
 	Password string `json:"password" valid:"required,max=72,min=3"`
 	Email    string `json:"email" valid:"required,email,max=255"`
+	RoleID   int64  `json:"role_id" valid:"required, gte=1"`
 }
 type CreateTokenUserPayload struct {
 	Email    string `json:"email" valid:"required,email,max=255"`
@@ -55,6 +57,7 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 	user := &store.User{
 		Username: payload.Username,
 		Email:    payload.Email,
+		RoleID:   payload.RoleID,
 	}
 	err = user.Password.Set(payload.Password)
 	if err != nil {
@@ -63,7 +66,7 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 	}
 	// store the user
 	plainToken := uuid.New().String()
-	//encrpyt token
+	// encrpyt token
 	hash := sha256.Sum256([]byte(plainToken))
 	hashToken := hex.EncodeToString(hash[:])
 	err = app.store.Users.CreateAndInvite(
@@ -84,7 +87,7 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	domain := env.GetString("DOMAIN", "http://localhost:8080")
-	activationURL := fmt.Sprintf("%s/activate/%s", domain, plainToken)
+	activationURL := fmt.Sprintf("%s/v1/users/activate/%s", domain, plainToken)
 	isProdEnv := app.config.env == "production"
 	vars := struct {
 		Username      string
@@ -102,7 +105,7 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		app.logger.Errorw("Error sending mail", "error", err)
-		//rollback user creation if email fails (SAGA Pattern)
+		// rollback user creation if email fails (SAGA Pattern)
 		if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
 			app.logger.Errorw("Deleting user failed", "error", err)
 		}
@@ -143,7 +146,7 @@ func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.badRequestError(w, r, err)
 	}
-	//fetch the user (check if the user exists) from payload
+	// fetch the user (check if the user exists) from payload
 	user, err := app.store.Users.GetUserByEmail(r.Context(), payload.Email)
 	if err != nil {
 		app.unauthorizedError(w, r, err)

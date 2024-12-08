@@ -6,8 +6,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/lib/pq"
 )
@@ -15,9 +16,10 @@ import (
 type User struct {
 	Username  string   `json:"username"`
 	Email     string   `json:"email"`
-	Password  password `json:"-"`
 	CreatedAt string   `json:"created_at"`
+	Password  password `json:"-"`
 	ID        int64    `json:"id"`
+	RoleID    int64    `json:"role_id"`
 }
 
 type password struct {
@@ -36,9 +38,9 @@ func (p *password) Set(input string) error {
 }
 
 type Follower struct {
+	CreatedAt  string `json:"created_at"`
 	UserID     int64  `json:"user_id"`
 	FollowerID int64  `json:"follower_id"`
-	CreatedAt  string `json:"created_at"`
 }
 
 type UserStore struct {
@@ -47,7 +49,7 @@ type UserStore struct {
 
 func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	query := `
-  INSERT INTO users(username, password, email) VALUES($1, $2, $3) RETURNING id, created_at
+  INSERT INTO users(username, password, email, role_id) VALUES($1, $2, $3, $4) RETURNING id, created_at
   `
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
 	defer cancel()
@@ -56,6 +58,7 @@ func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 		user.Username,
 		user.Password.Hash,
 		user.Email,
+		user.RoleID,
 	).Scan(
 		&user.ID,
 		&user.CreatedAt,
@@ -75,13 +78,13 @@ func (s *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 
 func (s *UserStore) GetUser(ctx context.Context, user *User, id int64) error {
 	query := `
-		SELECT id, username, email, created_at FROM users WHERE id = $1;
+		SELECT id, username, email, created_at, role_id FROM users WHERE id = $1;
 		`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
 	defer cancel()
 	err := s.db.QueryRowContext(
 		ctx, query, id,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.RoleID)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -127,11 +130,11 @@ func (s *UserStore) CreateAndInvite(
 	exp time.Duration,
 ) error {
 	return withTx(ctx, s.db, func(tx *sql.Tx) error {
-		//create the user
+		// create the user
 		if err := s.Create(ctx, tx, user); err != nil {
 			return err
 		}
-		//Create The user invite
+		// Create The user invite
 		err := s.createUserInvite(ctx, tx, user.ID, token, exp)
 		if err != nil {
 			return err
@@ -147,7 +150,6 @@ func (s *UserStore) createUserInvite(
 	token string,
 	exp time.Duration,
 ) error {
-
 	query := `
 insert into user_invitations(token, user_id, expiry) values($1, $2, $3);
 `
@@ -160,6 +162,7 @@ insert into user_invitations(token, user_id, expiry) values($1, $2, $3);
 
 	return nil
 }
+
 func (s *UserStore) Activate(ctx context.Context, token string) error {
 	hash := sha256.Sum256([]byte(token))
 	hashToken := hex.EncodeToString(hash[:])
@@ -244,19 +247,19 @@ delete from user_invitations where user_id = $1;
 
 func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-SELECT id, username, email, password,is_active from users where email = $1;
+SELECT id, username, email, password,is_active, role_id from users where email = $1;
 `
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeOut)
 	defer cancel()
 	user := &User{}
 	var confirm bool
 	err := s.db.QueryRowContext(ctx, query, email).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Password.Hash, &confirm,
+		&user.ID, &user.Username, &user.Email, &user.Password.Hash, &confirm, &user.RoleID,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if confirm != true {
+	if !confirm {
 		return nil, ErrEmailNotConfirmed
 	}
 	return user, nil

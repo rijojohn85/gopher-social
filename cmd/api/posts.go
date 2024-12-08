@@ -53,7 +53,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	if err := Validate.Struct(payload); err != nil {
 		app.badRequestError(w, r, err)
 	}
-	user := r.Context().Value("user").(store.User)
+	user := r.Context().Value(userCtxKey).(*store.User)
 	post := &store.Post{
 		Title:   payload.Title,
 		Content: payload.Content,

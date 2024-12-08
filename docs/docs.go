@@ -622,7 +622,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "User ID",
+                        "description": "User ID to Follow",
                         "name": "userID",
                         "in": "path",
                         "required": true
@@ -701,6 +701,9 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                },
+                "role_id": {
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"
@@ -846,6 +849,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "integer"
+                },
+                "role_id": {
                     "type": "integer"
                 },
                 "username": {

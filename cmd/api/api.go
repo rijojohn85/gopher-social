@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/rijojohn85/social/internal/db/auth"
 	"github.com/rijojohn85/social/internal/mailer"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,19 +18,19 @@ import (
 
 type application struct {
 	store         store.Storage
-	config        config
-	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	logger        *zap.SugaredLogger
+	config        config
 }
 
 type config struct {
+	mail   mailConfig
 	addr   string
 	env    string
 	apiURL string
-	db     dbConfig
-	mail   mailConfig
 	auth   authConfig
+	db     dbConfig
 }
 type authConfig struct {
 	basic basicAuthConfig
@@ -45,14 +46,14 @@ type basicAuthConfig struct {
 	pass string
 }
 type mailConfig struct {
-	exp    time.Duration
 	mailer mailTripConfig
+	exp    time.Duration
 }
 type mailTripConfig struct {
 	url      string
-	port     int
 	username string
 	password string
+	port     int
 }
 type dbConfig struct {
 	addr         string
@@ -74,52 +75,47 @@ func (app *application) mount() http.Handler {
 	* */
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Route(
-		"/v1", func(r chi.Router) {
-			r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
-			docsUrl := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
-			r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsUrl)))
+	r.Route("/v1", func(r chi.Router) {
+		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 
-			r.Route(
-				"/posts", func(r chi.Router) {
-					r.Use(app.AuthTokenMiddleware)
-					r.Post("/", app.createPostHandler)
+		docsUrl := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
+		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsUrl)))
 
-					r.Route(
-						"/{postID}", func(r chi.Router) {
-							r.Use(app.postContextMiddleware)
-							r.Get("/", app.getPostHandler)
-							r.Post("/comments", app.createCommentHandler)
-							r.Patch("/", app.patchPostHandler)
-							r.Delete("/", app.deletePostHandler)
-						},
-					)
-				},
-			)
-			r.Route(
-				"/users", func(r chi.Router) {
-					r.Put("/activate/{token}", app.activateUserHandler)
-					r.Route(
-						"/{userID}", func(r chi.Router) {
-							r.Use(app.AuthTokenMiddleware)
-							r.Use(app.userContextMiddleware)
-							r.Get("/", app.getUserHandler)
-							r.Put("/follow", app.followUserHandler)
-							r.Put("/unfollow", app.unfollowUserHandler)
-						},
-					)
-					r.Group(func(r chi.Router) {
-						r.Use(app.AuthTokenMiddleware)
-						r.Get("/feed", app.getUserFeedHandler)
-					})
-				},
-			)
-			r.Route("/authentication", func(r chi.Router) {
-				r.Post("/users", app.registerUser)
-				r.Post("/token", app.createTokenHandler)
+		r.Route("/users", func(r chi.Router) {
+			r.Route("/{userID}", func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
+
+				r.Get("/", app.getUserHandler)
+				r.Put("/follow", app.followUserHandler)
+				r.Put("/unfollow", app.unfollowUserHandler)
 			})
-		},
-	)
+			r.Put("/activate/{token}", app.activateUserHandler)
+
+			r.Group(func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
+				r.Get("/feed", app.getUserFeedHandler)
+			})
+		})
+
+		r.Route("/posts", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware)
+
+			r.Post("/", app.createPostHandler)
+			r.Route(
+				"/{postID}", func(r chi.Router) {
+					r.Use(app.postContextMiddleware)
+					r.Get("/", app.getPostHandler)
+					r.Post("/comments", app.createCommentHandler)
+					r.With(app.CheckPostOwernship).Patch("/", app.patchPostHandler)
+					r.With(app.CheckPostOwernship).Delete("/", app.deletePostHandler)
+				})
+		})
+
+		r.Route("/authentication", func(r chi.Router) {
+			r.Post("/users", app.registerUser)
+			r.Post("/token", app.createTokenHandler)
+		})
+	})
 
 	return r
 }

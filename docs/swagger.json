@@ -614,7 +614,7 @@
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "User ID",
+                        "description": "User ID to Follow",
                         "name": "userID",
                         "in": "path",
                         "required": true
@@ -693,6 +693,9 @@
                 },
                 "password": {
                     "type": "string"
+                },
+                "role_id": {
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"
@@ -838,6 +841,9 @@
                     "type": "string"
                 },
                 "id": {
+                    "type": "integer"
+                },
+                "role_id": {
                     "type": "integer"
                 },
                 "username": {

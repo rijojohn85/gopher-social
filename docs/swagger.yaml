@@ -6,6 +6,8 @@ definitions:
         type: string
       password:
         type: string
+      role_id:
+        type: integer
       username:
         type: string
     type: object
@@ -102,6 +104,8 @@ definitions:
       email:
         type: string
       id:
+        type: integer
+      role_id:
         type: integer
       username:
         type: string
@@ -453,7 +457,7 @@ paths:
       - application/json
       description: Follows a user by id
       parameters:
-      - description: User ID
+      - description: User ID to Follow
         in: path
         name: userID
         required: true

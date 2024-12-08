@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -72,47 +71,11 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 //	@Security		ApiKeyAuth
 //	@Router			/users/{userID} [GET]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	user := userFromContext(r.Context())
+	user := r.Context().Value(userCtxKey).(*store.User)
 	err := app.jsonResponse(w, http.StatusOK, user)
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}
-}
-
-func (app *application) userContextMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			param := chi.URLParam(r, "userID")
-
-			userId, err := strconv.ParseInt(param, 10, 64)
-			if err != nil {
-				app.badRequestError(w, r, err)
-				return
-			}
-
-			user := &store.User{}
-
-			ctx := r.Context()
-			err = app.store.Users.GetUser(ctx, user, userId)
-			if err != nil {
-				switch {
-				case errors.Is(err, store.ErrorNotFound):
-					app.notFoundError(w, r, err)
-					return
-				default:
-					app.internalServerError(w, r, err)
-					return
-				}
-			}
-			ctx = context.WithValue(ctx, flrCtxKey, user)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		},
-	)
-}
-
-func userFromContext(ctx context.Context) *store.User {
-	user := ctx.Value(flrCtxKey).(*store.User)
-	return user
 }
 
 // FollowUser godoc
@@ -122,7 +85,7 @@ func userFromContext(ctx context.Context) *store.User {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			userID	path		int	true	"User ID"
+//	@Param			userID	path		int	true	"User ID to Follow"
 //	@Success		204		{string}	 string "User Followed"
 //	@Failure		400		{object}	error "Bad Request: Payload missing/error"
 //	@Failure		404		{object}	error "User not found"
@@ -130,9 +93,13 @@ func userFromContext(ctx context.Context) *store.User {
 //	@Router			/users/{userID}/follow [PUT]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(userCtxKey).(*store.User)
-	followerUser := userFromContext(r.Context())
+	followerUser, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
+		app.badRequestError(w, r, err)
+		return
+	}
 	userID := user.ID
-	err := app.store.Users.AddFollower(r.Context(), userID, followerUser.ID)
+	err = app.store.Users.AddFollower(r.Context(), userID, followerUser)
 	if err != nil {
 		if errors.Is(err, store.ErrUserAlreadyFollows) {
 			app.conflictRequestError(w, r, err)
@@ -161,10 +128,14 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 //	@Security		ApiKeyAuth
 //	@Router			/users/{userID}/unfollow [PUT]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
-	followerUser := userFromContext(r.Context())
+	followerUser, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
+		app.badRequestError(w, r, err)
+		return
+	}
 	user := r.Context().Value(userCtxKey).(*store.User)
 	userID := user.ID
-	err := app.store.Users.DeleteFollower(r.Context(), userID, followerUser.ID)
+	err = app.store.Users.DeleteFollower(r.Context(), userID, followerUser)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
