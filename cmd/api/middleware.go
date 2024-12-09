@@ -89,7 +89,6 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		token := parts[1]
-
 		// convert token to jwt token using validate token
 		jwtToken, err := app.authenticator.ValidateToken(token)
 		if err != nil {
