@@ -78,7 +78,7 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	var user store.User
-	err = app.store.Users.GetUser(ctx, &user, userId)
+	err = app.getUser(ctx, &user, userId)
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}
