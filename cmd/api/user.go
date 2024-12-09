@@ -71,8 +71,18 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 //	@Security		ApiKeyAuth
 //	@Router			/users/{userID} [GET]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(userCtxKey).(*store.User)
-	err := app.jsonResponse(w, http.StatusOK, user)
+	userId, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
+		app.badRequestError(w, r, err)
+		return
+	}
+	ctx := r.Context()
+	var user store.User
+	err = app.store.Users.GetUser(ctx, &user, userId)
+	if err != nil {
+		app.internalServerError(w, r, err)
+	}
+	err = app.jsonResponse(w, http.StatusOK, user)
 	if err != nil {
 		app.internalServerError(w, r, err)
 	}

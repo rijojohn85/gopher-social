@@ -105,14 +105,32 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		ctx := r.Context()
+
 		user := &store.User{}
-		err = app.store.Users.GetUser(ctx, user, int64(userID))
+		err = app.getUser(ctx, user, userID)
 		if err != nil {
 			app.unauthorizedError(w, r, err)
 			return
 		}
+
 		ctx = context.WithValue(ctx, userCtxKey, user)
-		app.logger.Info("user logged", user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (app *application) getUser(ctx context.Context, user *store.User, userID int64) error {
+	err := app.cacheStorage.Users.Get(ctx, user, userID)
+	if err == nil && user != nil {
+		app.logger.Info("Cache data used")
+		return nil
+	}
+	err = app.store.Users.GetUser(ctx, user, int64(userID))
+	if err != nil {
+		return err
+	}
+	if err := app.cacheStorage.Users.Set(ctx, user); err != nil {
+		app.logger.Errorf("Error saving to cache", "error", err, "data", user)
+	}
+	app.logger.Info("Store data used")
+	return nil
 }

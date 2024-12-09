@@ -1,13 +1,16 @@
 package main
 
 import (
+	"time"
+
+	"github.com/go-redis/redis/v8"
 	"github.com/rijojohn85/social/internal/db"
 	"github.com/rijojohn85/social/internal/db/auth"
 	"github.com/rijojohn85/social/internal/env"
 	"github.com/rijojohn85/social/internal/mailer"
 	"github.com/rijojohn85/social/internal/store"
+	cache2 "github.com/rijojohn85/social/internal/store/cache"
 	"go.uber.org/zap"
-	"time"
 )
 
 const version = "0.0.1"
@@ -48,6 +51,12 @@ func main() {
 				password: env.GetString("MAILER_PASSWORD", ""),
 			},
 		},
+		redisCfg: redisConfig{
+			addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
+			pw:      env.GetString("REDIS_PW", ""),
+			db:      env.GetInt("REDIS_DB", 0),
+			enabled: env.GetBool("REDIS_ENABLED", false),
+		},
 		auth: authConfig{
 			basic: basicAuthConfig{
 				user: "rijo",
@@ -60,7 +69,7 @@ func main() {
 			},
 		},
 	}
-	//logger
+	// logger
 	logger := zap.Must(zap.NewProduction()).Sugar()
 	defer logger.Sync()
 	database, err := db.New(
@@ -69,6 +78,16 @@ func main() {
 		cfg.db.maxIdleConns,
 		cfg.db.maxIdleTime,
 	)
+	// cache
+	var rd *redis.Client
+	if cfg.redisCfg.enabled {
+		rd = cache2.NewRedisClient(
+			cfg.redisCfg.addr,
+			cfg.redisCfg.pw,
+			cfg.redisCfg.db,
+		)
+		logger.Info("Redis connection establised.")
+	}
 	if err != nil {
 		logger.Panic(err.Error())
 	}
@@ -89,6 +108,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailTripDialer,
 		authenticator: authetincator,
+		cacheStorage:  cache2.NewRedisStorage(rd),
 	}
 	mux := app.mount()
 	logger.Fatal(app.run(mux))

@@ -7,6 +7,7 @@ import (
 
 	"github.com/rijojohn85/social/internal/db/auth"
 	"github.com/rijojohn85/social/internal/mailer"
+	"github.com/rijojohn85/social/internal/store/cache"
 	"go.uber.org/zap"
 
 	"github.com/go-chi/chi/v5"
@@ -21,16 +22,24 @@ type application struct {
 	mailer        mailer.Client
 	authenticator auth.Authenticator
 	logger        *zap.SugaredLogger
+	cacheStorage  cache.Storage
 	config        config
 }
 
 type config struct {
-	mail   mailConfig
-	addr   string
-	env    string
-	apiURL string
-	auth   authConfig
-	db     dbConfig
+	mail     mailConfig
+	addr     string
+	env      string
+	apiURL   string
+	auth     authConfig
+	db       dbConfig
+	redisCfg redisConfig
+}
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 type authConfig struct {
 	basic basicAuthConfig
