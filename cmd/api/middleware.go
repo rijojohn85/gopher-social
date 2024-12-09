@@ -19,9 +19,19 @@ func (app *application) CheckPostOwernship(next http.Handler) http.Handler {
 		post := r.Context().Value(postCtx).(*store.Post)
 		// if method is get or user is owner of post or method is patch and role is mod or
 		// role is admin continue
+		adminRole, err := app.store.Roles.GetIDByName(r.Context(), "admin")
+		if err != nil {
+			app.internalServerError(w, r, errors.New("Admin role not defined"))
+			return
+		}
+		modRole, err := app.store.Roles.GetIDByName(r.Context(), "moderator")
+		if err != nil {
+			app.internalServerError(w, r, errors.New("Moderator role not defined"))
+			return
+		}
 		if (r.Method == http.MethodGet || post.UserID == user.ID) ||
-			(r.Method == http.MethodPatch && user.RoleID == 2) ||
-			(user.RoleID == 3) {
+			(r.Method == http.MethodPatch && user.RoleID == modRole.RoleID) ||
+			(user.RoleID == adminRole.RoleID) {
 			next.ServeHTTP(w, r)
 			return
 		}

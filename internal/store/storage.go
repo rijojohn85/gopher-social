@@ -7,14 +7,16 @@ import (
 	"time"
 )
 
-var ErrorNotFound = errors.New("record not found")
-var QueryTimeOut = time.Second * 5
-var ErrUserAlreadyFollows = errors.New("user already follows")
-var ErrDuplicateEmail = errors.New("duplicate email")
-var ErrDuplicateUsername = errors.New("duplicate username")
-var ErrInvitationExpired = errors.New("invitation expired")
-var ErrInvalidToken = errors.New("invalid token")
-var ErrEmailNotConfirmed = errors.New("email not confirmed")
+var (
+	ErrorNotFound         = errors.New("record not found")
+	QueryTimeOut          = time.Second * 5
+	ErrUserAlreadyFollows = errors.New("user already follows")
+	ErrDuplicateEmail     = errors.New("duplicate email")
+	ErrDuplicateUsername  = errors.New("duplicate username")
+	ErrInvitationExpired  = errors.New("invitation expired")
+	ErrInvalidToken       = errors.New("invalid token")
+	ErrEmailNotConfirmed  = errors.New("email not confirmed")
+)
 
 type Storage struct {
 	Posts interface {
@@ -43,6 +45,9 @@ type Storage struct {
 		Create(context.Context, *Comment) error
 		GetByPostID(ctx context.Context, postID int64) ([]Comment, error)
 	}
+	Roles interface {
+		GetIDByName(context.Context, string) (*Role, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -50,6 +55,7 @@ func NewStorage(db *sql.DB) Storage {
 		Posts:    &PostStore{db},
 		Users:    &UserStore{db},
 		Comments: &CommentStore{db},
+		Roles:    &RoleStore{db},
 	}
 }
 
